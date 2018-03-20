@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,minimum-scale=1.0,user-scalable=no">
+  <link rel="stylesheet" type="text/css" href="//at.alicdn.com/t/font_588257_8bzd78i6vyv9ggb9.css">
+  <!-- <link rel="stylesheet" type="text/css" href="./static/iconfont/iconfont.css"> -->
+  <!-- <script src="./jquery.js"></script> -->
+  <script src="static/echarts1.js"></script>
+  <style>
+    html{
+      font-size:100px;
+      height: 100%;
+    }
+    *{
+      margin: 0;
+      padding: 0;
+    }
+    body{
+      height:100%;
+    }
+    .lineBox{
+      width: 100%;
+      /* border:1px solid green; */
+      height:100%;
+    }
+    .kBtn{
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height:9%;
+      position: relative;
+      z-index: 10000000;
+      background-color:#1a1a1a;
+    }
+    button{
+      list-style:none;
+      border:0 none;
+      background-color:#1a1a1a;
+      text-align:center;
+      font-size: .24rem;
+      color:#999999;
+      float: left;
+      border: none;
+      outline: none;
+    }
+    .lineType{
+      background: #2a2a2a;
+      overflow:hidden;
+      font-size: .24rem;
+      float: left;
+      padding: 0.1rem;
+      margin-left: 0.1rem;
+    }
+    .lineType>button{
+      width: 0.61rem;
+      height: 0.43rem;
+      color: #999999;
+      background-color: #2a2a2a;
+    }
+    .timeType{
+      float: left;
+      box-sizing: border-box;
+      font-size: .24rem;
+      padding: 0.1rem;
+      display: flex;
+      height: 0.63rem;
+      color: #999999;
+
+    }
+    .timeType .button1{
+      font-size: .28rem;
+      color: black;
+    }
+    .timeType > button{
+      margin-right: 0.6rem;
+    }
+    .fenLine{
+      font-size: .24rem;
+      position: absolute;
+      top:-0.05rem;
+      padding: 0.1rem;
+      overflow: hidden;
+      width: 0.9rem;
+      right: 0rem;
+      overflow: hidden;
+      height: 0.43rem;
+      top: 0rem;
+      z-index: 100;
+    }
+    .fenLine>label{
+        position:absolute;
+        right:0;
+        width: .9rem;
+    }
+    .fenLine #icon-xiala{
+        position:absolute;
+        right:.08rem;
+        top:.1rem;
+        font-size:.12rem;
+        color:#999;
+    }
+    .fenLine button{
+      display: block;
+      width: 0.61rem;
+      height: 0.43rem;
+    }
+    .lineType button.active{
+      background: #434343;
+      color:#fedc00;
+      border-radius: 2px;
+    }
+    .timeType button.active{
+      outline:none;
+      color:#fedc00;
+    }
+    #kchart.kline{
+      /* background-color:white; */
+      height:100%;
+    }
+    #kchart{
+      height: 100%;
+    }
+    .kBtn div.active{
+      height: 0.43rem;
+    }
+    #selects{
+      appearance:none;
+      -moz-appearance:none;
+      -webkit-appearance:none;
+      direction: inherit;
+      border: none;
+      position: relative;
+      top: 1px;
+      color: #999999;
+      font-size: .28rem;
+      width: .9rem;
+      background: #1a1a1a;
+      text-indent:2px;
+    }
+    #selects.active{
+      color:#fedc00;
+    }
+  </style>
+</head>
+<body>
+  <div class="lineBox" id="lineBox">
+    <div class="kBtn">
+      <div class="lineType">
+      <button onclick="changeType(this,'stock')" class="kc_type">K线</button>
+      <button onclick="changeType(this,'line')" class="kc_type active" >走势</button>
+      </div>
+      <div class="timeType" style="margin-left: 0.7rem">
+      <button onclick="changeTime(this,'H4')" class="kc_time ">4时</button>
+      <button onclick="changeTime(this,'D')" class="kc_time">日K</button>
+      <button onclick="changeTime(this,'W')" class="kc_time">周K</button>
+      <button onclick="changeTime(this,'MN')" class="kc_time">月K</button>
+      <div class="fenLine">
+        <label for="selects">
+          <select name="" id="selects" class="active" onchange="changes()">
+            <option value="M1" >1分</option>
+            <option value="M5" >5分</option>
+            <option value="M15" >15分</option>
+            <option value="M30" >30分</option>
+            <option value="H1" >60分</option>
+            <option value="0" style="display: none;font-size: 1px">分钟</option>
+          </select>
+          <i class="iconfont icon-f11-copy" id="icon-xiala"></i>
+        </label>
+      </div>
+
+      </div>
+    </div>
+    <div class="kline" id="kchart" style="height: 91%;"></div>
+  </div>
+</body>
+<script>
+  //屏幕自适应
+  (function (doc, win) {
+    var docEl = doc.documentElement,
+      resizeEvt = 'orientationchange' in window ? 'orientationchange' : 'resize',
+      recalc = function () {
+        var clientWidth = docEl.clientWidth;
+        if (!clientWidth) return;
+        docEl.style.fontSize = (clientWidth >= 750 ? 50 : clientWidth / 7.5) + 'px';
+      };
+    if (!doc.addEventListener) return;
+    win.addEventListener(resizeEvt, recalc, false);
+    doc.addEventListener('DOMContentLoaded', recalc, false);
+  })(document, window);
+
+
+  // ajax
+  (function(w) {
+    w.ajax = function() {
+      var ajaxData = {
+        type: arguments[0].type || "GET",
+        url: arguments[0].url || "",
+        async: arguments[0].async || "true",
+        data: arguments[0].data || null,
+        dataType: arguments[0].dataType || "text",
+        contentType: arguments[0].contentType || "application/x-www-form-urlencoded",
+        beforeSend: arguments[0].beforeSend ||
+        function() {},
+        success: arguments[0].success ||
+        function() {},
+        error: arguments[0].error ||
+        function() {}
+      }
+      var url = ajaxData.url;
+
+      if(ajaxData.type === "GET"){
+        url += "?" + convertData(ajaxData.data);
+      }
+      ajaxData.beforeSend()
+      var xhr = createxmlHttpRequest();
+      xhr.responseType = ajaxData.dataType;
+      xhr.open(ajaxData.type, url, ajaxData.async);
+      xhr.setRequestHeader("Content-Type", ajaxData.contentType);
+      if(ajaxData.type === "GET"){
+        xhr.send();
+      }else{
+        xhr.send(convertData(ajaxData.data));
+      }
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 4) {
+          if (xhr.status == 200) {
+            ajaxData.success(xhr.response)
+          } else {
+            ajaxData.error()
+          }
+        }
+      }
+    }
+    function createxmlHttpRequest() {
+      if (window.ActiveXObject) {
+        return new ActiveXObject("Microsoft.XMLHTTP");
+      } else if (window.XMLHttpRequest) {
+        return new XMLHttpRequest();
+      }
+    }
+
+    function convertData(data) {
+      if (typeof data === 'object') {
+        var convertResult = "";
+        for (var c in data) {
+          convertResult += c + "=" + data[c] + "&";
+        }
+        convertResult = convertResult.substring(0, convertResult.length - 1)
+        return convertResult;
+      } else {
+        return data;
+      }
+    }
+  })(window);
+</script>
+<script>
+  
+  var types = document.getElementsByClassName("kc_type");
+  var box =   document.getElementById("selects");
+  var times = document.getElementsByClassName("kc_time");
+  //K线or折线
+  function changeType(tag, chart_type) {
+    for (var i = 0; i < types.length; ++i){
+      types[i].classList.remove("active");
+    }
+    tag.classList.add("active");
+  	var kline = KLine;
+  	var data = KLine.data;
+  	data.chart_type = chart_type;
+  	kline.flushChart();
+  }
+  //切换分钟
+  function changes() {
+    var index = box.selectedIndex;
+    var tt=box.options[index].value;
+    for (var i = 0; i < times.length; ++i){
+      times[i].classList.remove("active");
+    }
+    var kline = KLine;
+    var data = KLine.data;
+    data.type = tt;
+    var oldchart = window.KLine.KChart.getOption();
+    data.oldZoomStart = 0;
+    data.oldZoomEnd = 0;
+    data.a = 1;
+    kline.getHistoryData();
+  }
+
+  //切换周月日时
+  function changeTime(tag, type) {
+    for (var i = 0; i < times.length; ++i){
+      times[i].classList.remove("active");
+    }
+    box.classList.remove('active');
+    box.value="0";
+    tag.classList.add("active");
+  	var kline = KLine;
+  	var data = KLine.data;
+  	data.type = type;
+    var oldchart=window.KLine.KChart.getOption();
+    data.oldZoomStart = 0;
+    data.oldZoomEnd = 0;
+    data.a = 1;
+  	kline.getHistoryData();
+  }
+
+  function getMarkDataX(tick){  //获取显示条数的百分比
+    var len = (tick+"").length;
+    var per="";
+    switch(len){
+      case 4: per="107%";break;
+      case 5: per="107%";break;
+      case 6: per="105%";break;
+      case 7: per="102%";break;
+      case 8: per="102%";break;
+      case 9: per="100%";break;
+      case 10: per="96%";break;
+      case 11: per="96%";break;
+      case 12: per="94%";break;
+      case 13: per="94%";break;
+    }
+    return per
+  }
+  window.KLine = {
+		data: {
+			chartData: {
+				categoryData: [],
+				// 时间数据
+				marketData: [],
+				// k线数据
+				trendData: [],
+				// 走势
+				tick: 0,
+				// 当前行情
+				length: 0 // 条数
+			},
+			historyData: [],  //历史数据
+			chart_type: "line",  //K线和走势类型
+			type: "M1",   //分钟线
+			code: "AUDUSD",
+      oldZoomStart:0,
+      oldZoomEnd:0,
+      oldZoomPan:false,
+      a:'',
+      b:'',
+			chartOption: function() {
+				var kline = window.KLine;
+        var data = window.KLine.data;
+
+				return {
+          // tooltip: {
+          //   trigger: 'axis',
+          //   axisPointer: {
+          //     type: 'cross'
+          //   }
+          // },
+					animation: false,
+					backgroundColor: '#080610',
+					legend: {
+            show: false,
+            bottom:0,
+					},
+					tooltip: {
+            show:false
+					},
+					grid: [{
+						top: '8px',
+						bottom: '4px',
+						left: '2%',
+						right: '2px',
+						height: '76%',
+            width:'97%',
+            containLabel: true,
+            show:false,
+            backgroundColor:'#080610'
+					},{
+                width: '97%',
+                top: '80%',
+                right:'10px',
+                height: '20%',
+                containLabel: true,
+                backgroundColor: '#000',
+                show: false,
+
+            }
+          ],
+					xAxis: [
+            {
+              inverse: false,
+              gridIndex: 0,
+              scale: true,
+  						type: 'category',
+  						data: data.chartData.categoryData,
+  						axisLine: {
+  							show: false,
+                lineStyle:{
+  							  color:'#504e55',
+                  width:'1'
+                }
+  						},
+  						axisTick: {
+  							show: false,
+  						},
+  						axisLabel: {
+                //  x轴字体颜色
+  							textStyle: {
+  								color: '#eee'
+  							},
+  							formatter: function(value, index) {
+  								return kline.dateFormat(value);
+  							}
+  						},
+  					},
+              //macd的图
+            {
+              inverse: false,
+              gridIndex: 1,
+              scale: true,
+              type: 'category',
+              data: data.chartData.categoryData,
+              axisLabel: {
+                textStyle: {
+                  color: '#fff'
+                },
+                show: true,
+                formatter: function (value, index) {
+                  return kline.dateFormat(value);
+                }
+              },
+              // axisPointer: {
+              //   type: 'line',
+              //   show: true,
+              //   label: {
+              //     backgroundColor: '#000',
+              //     formatter: function (params) {
+              //       var time = moment.unix(params.value);
+              //       time = moment(time).format('YYYY-MM-DD HH:mm');
+              //       return time;
+              //     }
+              //   },
+              // },
+              splitLine: {
+                show: false
+              }
+            }
+          ],
+					yAxis: [
+            {
+  						gridIndex: 0,
+  						position: "right",
+  						scale: true,
+              show:true,
+              type:'value',
+  						axisLabel: {
+  							textStyle: {
+  								color: '#999'
+  							},
+  							formatter: function(value, index) {
+  							 if (value >= 0) {
+                    var aa = "+" + (kline.getFloat(value).toFixed(data.decimalPlace));
+                    if (aa.length > 11) {
+                      aa = aa.substr(0, 11)
+                    }
+                    return aa;
+                  }
+  							}
+  						},
+  						axisLine: {
+  							show: false,
+                lineStyle:{
+  							  color:'#504e55'
+                }
+  						},
+                //是否显示刻度
+  						axisTick: {
+  							show: false,
+  						},
+                  //分割线
+  						splitLine: {
+  							show: true,
+  							lineStyle: {
+                  color: "#16141b",
+  							}
+  						}
+  					},
+            {
+                gridIndex: 1,
+                position: "right",
+                splitNumber:3,
+                scale: true,
+                type: 'value',
+                show: true,
+                axisLine:{
+                  show:false
+                },
+                axisLabel: {
+                  textStyle: {
+                    color: '#111'
+                  },
+                  formatter: function (value, index) {
+                    if (value >= 0) {
+                      var aa = "+" + (kline.getFloat(value).toFixed(data.decimalPlace));
+                      if (aa.length > 11) {
+                        aa = aa.substr(0, 11)
+                      }
+                      return aa;
+                    }
+                    var bb = kline.getFloat(value).toFixed(data.decimalPlace);
+                    if (bb.length > 11) {
+                      bb = bb.substr(0, 11)
+                    }
+                    return bb
+                  },
+                },
+                splitLine: {
+                  show: false
+                },
+                axisTick: {
+                  show: false,
+                },
+              },
+          ],
+					dataZoom: [{
+						type: 'inside',
+            xAxisIndex: [0, 1],
+            startValue:kline.getStartZoom(data.chartData.length),
+            endValue:kline.getEndZoom(data.chartData.length-1),
+					}],
+					series: [{
+						name: 'line',
+						type: 'line',
+						xAxisIndex: 0,
+						yAxisIndex: 0,
+						data: data.chart_type === "line" ? data.chartData.trendData : [],
+						showSymbol: false,
+						lineStyle: {
+							normal: {
+								width: 1,
+								color: 'rgb(253, 209, 42)',
+							}
+						},
+						areaStyle: {
+							normal: {
+								color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+									offset: 0,
+									color: 'red'
+								}, {
+									offset: 1,
+									color: 'yellow'//设置走势渐变
+								}])
+							},
+						},
+            markPoint: {
+              symbol: "rect",
+              animation: true,
+              symbolSize: [60, 18],
+              symbolOffset: [-18, 5],
+              data: [{
+                name: '最新价',
+                x: '90%',
+                yAxis: data.chartData.tick,
+                value: data.chartData.tick,
+                label: {
+                  normal: {
+                    show: true,
+                    position: [0, 2],
+                    textStyle: {
+                      color: "#FFFFFF",
+                    },
+                    formatter: function(params) {
+                      return (params.value*1).toFixed(data.decimalPlace);
+                    },
+                  }
+                },
+              }]
+            },
+            markLine: {
+              symbolSize: 0,
+              animation: false,
+              label: {
+                normal: {
+                  show: false,
+                }
+              },
+              lineStyle: {
+                normal: {
+                  type: 'dashed',
+                  width: 1,
+                },
+              },
+              data: [
+                [{
+                  name: "mark_line_start",
+                  x: 0,
+                  yAxis: data.chartData.tick,
+                }, {
+                  name: "mark_line_end",
+                  x: '100%',
+                  yAxis: data.chartData.tick,
+                }], ]
+            },
+					}, {
+						name: 'stock',
+						xAxisIndex: 0,
+						yAxisIndex: 0,
+						type: 'candlestick',
+						data: data.chart_type === "stock" ? data.chartData.marketData : [],
+						itemStyle: {
+							normal: {
+							  color: '#ec0000',//第一个线的颜色
+                color0: '#00da3c',
+                borderColor: '#8a0000',
+                borderColor0: '#008f28',//绿色边框的颜色
+							}
+						}
+					}, {
+						name: 'ma5',
+						type: 'line',
+						xAxisIndex: 0,
+						yAxisIndex: 0,
+						data: data.chart_type === "stock" ? kline.calculateMA(5, data.chartData.marketData) : [],
+						smooth: true,
+						showSymbol: false,
+						lineStyle: {
+							normal: {
+								width: 1
+							}
+						}
+					}, {
+						name: 'ma10',
+						type: 'line',
+						xAxisIndex: 0,
+						yAxisIndex: 0,
+						data: data.chart_type === "stock" ? kline.calculateMA(10, data.chartData.marketData) : [],
+						smooth: true,
+						showSymbol: false,
+						lineStyle: {
+							normal: {
+								width: 1,
+								color: '#86da2b'
+							}
+						}
+					}, {
+						name: 'ma20',
+						type: 'line',
+						xAxisIndex: 0,
+						yAxisIndex: 0,
+						data: data.chart_type === "stock" ? kline.calculateMA(20, data.chartData.marketData) : [],
+						smooth: true,
+						showSymbol: false,
+						lineStyle: {
+							normal: {
+								width: 1,
+								color: '#ff5382'
+							}
+						}
+					}, {
+						name: 'ma30',
+						type: 'line',
+						xAxisIndex: 0,
+						yAxisIndex: 0,
+						data: data.chart_type === "stock" ? kline.calculateMA(30, data.chartData.marketData) : [],
+						smooth: true,
+						showSymbol: false,
+						lineStyle: {
+							normal: {
+								width: 1,
+								color: '#3d8ef6'
+							}
+						}
+					},{
+              name: 'MACD',
+              type: 'bar',
+              xAxisIndex: 1,
+              yAxisIndex: 1,
+              data: data.chartData.BAR,
+              itemStyle: {
+                normal: {
+                  color: function (params) {
+                    var colorList;
+                    if (params.data >= 0) {
+                      colorList = '#ef232a';
+                    } else {
+                      colorList = '#14b143';
+                    }
+                    return colorList;
+                  },
+                }
+              }
+            }, {
+              name: 'DIF',
+              type: 'line',
+              xAxisIndex: 1,
+              yAxisIndex: 1,
+              data: data.chartData.DIF
+            }, {
+              name: 'DEA',
+              type: 'line',
+              xAxisIndex: 1,
+              yAxisIndex: 1,
+              data: data.chartData.DEA
+            }
+
+          ]
+				};
+			}
+		},
+
+		// 创建chart 设置自适应
+    init: function(hei) {
+      var kline = window.KLine;
+      kline.ChartTag = document.getElementById('kchart');
+			kline.KChart = echarts.init(kline.ChartTag);
+      window.addEventListener("resize",function(){
+        window.KLine.KChart.resize();
+      });
+			kline.getHistoryData();
+      // var box=document.getElementById("lineBox");
+      // var heig=hei*0.64;
+      // box.style.height=heig+"px";
+		},
+		//获取历史数据
+		getHistoryData: function() {
+			var kline = window.KLine;
+      var data = window.KLine.data;
+      data.oldZoomStart = 0;
+      data.oldZoomEnd = 0;
+			var cacheKey = data.code + "_" + data.type; // 本地缓存的key
+			var lastTime = 0;
+
+			// 本地缓存
+			var cacheData = localStorage.getItem(cacheKey); // 缓存的数据格式: [[时间戳,开,收,低,高],[时间戳,开,收,低,高]]
+			if (cacheData && cacheData != "") {
+				cacheData = JSON.parse(cacheData);
+				if (cacheData && cacheData.length > 0) {
+					data.historyData = cacheData;
+					lastTime = cacheData[cacheData.length - 1][0];
+				} else {
+					data.historyData = [];
+				}
+			} else {
+				data.historyData = [];
+			}
+			// 获取历史数据
+			ajax({
+				url: 'http://'+window.parent.ApiUrl+'/tick/list',
+				data: {
+					code: data.code,
+					type: data.type,
+					lastTime: lastTime,
+				},
+				success: function(res) {
+					kline.mergeHistoryData(data.historyData, res);
+					localStorage.setItem(cacheKey, JSON.stringify(data.historyData));
+					kline.divisionData();
+					kline.flushChart();
+          window.parent.chartReady();
+				}
+			});
+		},
+		// 合并历史数据
+		mergeHistoryData: function(historyData, strData) {
+			// 字符串数据的格式为:用竖杠|分开, 第一个为类型, 后跟数据, 其中从左到右依次是开、高、低、收、时间戳,用英文逗号分开
+      var rawData = strData.split("|");
+			for (var i = 1; i < rawData.length; ++i) {
+				var arr = rawData[i].split(",");
+				historyData.push([parseInt(arr[4]), parseFloat(arr[0]), parseFloat(arr[3]), parseFloat(arr[2]), parseFloat(arr[1])]);
+      }
+			if (historyData.length > 1500) {
+        historyData.splice(1, 10);
+      }
+		},
+
+    // 获取图表显示区域开始位置
+		getStartZoom: function(showCount) {
+      var data = window.KLine.data;
+      if(data.a === 0 ){
+        return 0
+      }
+      if(showCount >=40){
+        if(data.oldZoomStart > 0 && showCount > data.oldZoomStart){
+          return data.oldZoomStart
+        }else{
+          return (showCount - 40)
+        }
+      }else {
+        return 0
+      }
+		},
+    //获取图表显示区域结束位置
+    getEndZoom: function(showCount){
+      var data = window.KLine.data;
+      if(showCount >=40){
+        if(data.oldZoomEnd > 0 && showCount >= data.oldZoomEnd){
+          return data.oldZoomEnd
+        }else{
+          return showCount
+        }
+      }else {
+        return showCount
+      }
+    },
+		// 刷新图表
+		flushChart: function() {
+			var kline = window.KLine;
+			var data = window.KLine.data;
+			kline.KChart.setOption(data.chartOption(), true);
+		},
+		// 处理数据为图表需要的格式
+		divisionData: function() {
+			var kline = window.KLine;
+			var data = window.KLine.data;
+			var chartData = data.chartData = {
+				categoryData: [],
+				// 时间数据
+				marketData: [],
+				// k线数据
+				trendData: [],
+				// 走势
+				tick: 0,
+        DEA: [],
+        DIF: [],
+        BAR: [],
+				// 当前行情
+				length: 0 // 条数
+			};
+      var historyData = data.historyData;
+			// if ((/^USD/).test(data.code)) {
+			// 	for (var i in historyData) {
+   //        var datetime = historyData[i][0];
+   //        var open = data.rate / historyData[i][1];
+   //        var close = data.rate / historyData[i][2] ;
+   //        var lowest = data.rate / historyData[i][4] ;
+   //        var highest = data.rate / historyData[i][3] ;
+   //        chartData.categoryData.push(datetime);
+   //        chartData.trendData.push(close);
+   //        chartData.marketData.push([open, close, lowest, highest]);
+   //        chartData.length++;
+			// 	};
+			// } else {
+				for (var i in historyData) {
+					var datetime = historyData[i][0];
+					var open =historyData[i][1];
+					var close =historyData[i][2];
+					var lowest =historyData[i][3];
+					var highest =historyData[i][4];
+					chartData.categoryData.push(datetime);
+					chartData.trendData.push(close);
+					chartData.marketData.push([open, close, lowest, highest]);
+					chartData.length++;
+          chartData.DIF = this.build_diff_data(chartData.marketData);
+          chartData.DEA = this.build_dea_data(chartData.DIF);
+          chartData.BAR = this.build_macd_data(chartData.marketData, chartData.DIF, chartData.DEA);
+				};
+			// }
+			if (chartData.length > 0) {
+				chartData.tick = kline.getFloat(chartData.trendData[chartData.length - 1]);
+			};
+		},
+    //计算diff
+    build_diff_data(data) {
+      var result = [];
+      var pre_emashort = 0;
+      var pre_emalong = 0;
+      for (var i = 0, len = data.length; i < len; i++) {
+        var ema_short = data[i][1];
+        var ema_long = data[i][1];
+
+        if (i != 0) {
+          ema_short = (1.0 / 12) * data[i][1] + (1 - 1.0 / 12) * pre_emashort;
+          ema_long = (1.0 / 26) * data[i][1] + (1 - 1.0 / 26) * pre_emalong;
+        }
+
+        pre_emashort = ema_short;
+        pre_emalong = ema_long;
+        var diff = ema_short - ema_long;
+
+        result.push(diff);
+      }
+      return result;
+    },
+    //计算dea
+    build_dea_data(diff) {
+      var result = [];
+      var pre_ema_diff = 0;
+      for (var i = 0, len = diff.length; i < len; i++) {
+        var ema_diff = diff[i];
+
+        if (i != 0) {
+          ema_diff = (1.0 / 9) * diff[i] + (1 - 1.0 / 9) * pre_ema_diff;
+        }
+        pre_ema_diff = ema_diff;
+
+        result.push(ema_diff);
+      }
+
+      return result;
+    },
+    //计算macd
+    build_macd_data(data, diff, dea) {
+      var result = [];
+      for (var i = 0, len = data.length; i < len; i++) {
+        var macd = 2 * (diff[i] - dea[i]);
+        result.push(macd);
+      }
+
+      return result;
+    },
+		// 计算平均线
+		calculateMA: function(dayCount, data) {
+			var result = Array.apply(null, Array(dayCount)).map(function(item, i) {
+				return '-';
+			});
+			for (var i = dayCount, len = data.length; i < len; i++) {
+				var sum = 0;
+				for (var j = 0; j < dayCount; j++) {
+					sum += data[i - j][1]*1;
+				}
+
+				result.push(sum / dayCount);
+			}
+			return result;
+		},
+		//处理时间
+		dateFormat: function(unixTimestamp) {
+			var data = window.KLine.data;
+			//时间戳是整数，否则要parseInt转换
+			var re = /^[0-9]+.?[0-9]*$/;
+			if (re.test(unixTimestamp)) {
+				var time = new Date(unixTimestamp * 1000);
+				var m = time.getMonth() + 1;
+				var d = time.getDate();
+				var h = time.getHours();
+				var mm = time.getMinutes();
+				if (data.type == "D") {
+					return this.addzero(m) + "/" + this.addzero(d);
+				}else if(data.type == "W"){
+          return this.addzero(m) + "/" + this.addzero(d);
+        }else  if(data.type == 'MN'){
+          return this.addzero(m);
+        } else {
+					return this.addzero(h) + ":" + this.addzero(mm);
+				}
+			} else {
+				return unixTimestamp;
+			}
+		},
+		addzero: function(m) {
+			return m < 10 ? '0' + m : m;
+		},
+		// 处理实时数据 格式 USDJPY|112.668|1513218316
+		tickHandle: function(tick) {
+			var kline = window.KLine;
+			var data = window.KLine.data;
+			if(data.chartData.length < 1){
+			  return;
+      }
+			var tickData = tick.split("|");
+			if (data.code == tickData[0]) {
+				var tickTime = parseInt(tickData[2]);
+				// var tickValue = 0;
+				// if ((/^USD/).test(data.code)) {
+        //       tickValue = kline.getFloat(parseFloat(data.rate / tickData[1] ));
+				// } else {
+				var	tickValue = kline.getFloat(parseFloat(tickData[1]));
+				// }
+				// 判断当前时间和图表上最后一个点的时间是否在同一时间段内
+				if (kline.isSameTime(tickTime)) { // 修改旧数据
+					data.chartData.trendData[data.chartData.length - 1] = tickValue;
+					var lastMarketData = data.chartData.marketData[data.chartData.length - 1];
+					lastMarketData[1] = tickValue.toFixed(data.decimalPlace) * 1; // close
+					if (tickValue > lastMarketData[3]) { // highest
+						lastMarketData[3] = tickValue.toFixed(data.decimalPlace) * 1;
+					}
+					if (tickValue < lastMarketData[2]) { // lowest
+						lastMarketData[2] = tickValue.toFixed(data.decimalPlace) * 1;
+					}
+				} else { // 添加新的
+					var lastMarketData = data.chartData.marketData[data.chartData.length - 1];
+					data.chartData.trendData.push(tickValue);
+					data.chartData.marketData.push([lastMarketData[1], lastMarketData[1], lastMarketData[1],lastMarketData[1]]);
+          var close = lastMarketData[1];
+          data.chartData.length++;
+          data.chartData.DIF = this.build_diff_data(data.chartData.marketData);
+            data.chartData.DEA = this.build_dea_data(data.chartData.DIF);
+            data.chartData.BAR = this.build_macd_data(data.chartData.marketData, data.chartData.DIF, data.chartData.DEA);
+				}
+				data.chartData.tick = tickValue;
+        var oldchart=window.KLine.KChart.getOption();
+        data.oldZoomStart = oldchart.dataZoom[0].startValue;
+        data.oldZoomEnd = oldchart.dataZoom[0].endValue;
+        if(data.oldZoomStart === 0 ){
+          data.a =0;
+        }else {
+          data.a = 1
+        }
+        //记录你查看的位置，防止新数据进来直接显示新数据
+        if(data.oldZoomPan && (data.oldZoomEnd == data.chartData.categoryData.length-1 || data.chartData.categoryData.length-2)){
+          data.oldZoomStart = oldchart.dataZoom[0].startValue+1;
+          data.oldZoomEnd = oldchart.dataZoom[0].endValue+1;
+          data.oldZoomPan = false;
+        }
+        kline.flushChart();
+			}
+		},
+		// 判断和最后数据是否是在同一个时间段内, 如果不在则添加新的时间
+		isSameTime: function(tickTime) {
+			var data = window.KLine.data;
+			var range = 1; // 时间段长度
+			switch (data.type) {
+        case "M1":
+          range = 60;
+          break;
+        case "M5":
+          range = 60 * 5;
+          break;
+        case "M15":
+          range = 60 * 15;
+          break;
+        case "M30":
+          range = 60 * 30;
+          break;
+        case "H1":
+          range = 60 * 60;
+          break;
+        case "H4":
+          range = 60 * 60 * 4;
+          break;
+        case "D":
+          range = 60 * 60 * 24;
+          break;
+        case "W":
+          range = 60*60*24*7;
+          break;
+        case "MN":
+          range = 60*60*24*30;
+          break
+        }
+			var categoryLength = data.chartData.length;
+			if (categoryLength > 0) {
+				var lastTime = data.chartData.categoryData[categoryLength - 1];
+				lastTime += range;
+				if (lastTime > tickTime) {
+					return true;
+				}
+			}
+			// 如果不在一个时间段内则把时间加进来
+			data.chartData.categoryData.push(tickTime - tickTime % range);
+      data.oldZoomPan = true;
+			return false;
+		},
+		getFloat:function(val) {
+      var data = window.KLine.data;
+       var b = parseFloat(val).toFixed(data.decimal + 1).toString();
+       return val;
+		}
+	};
+  window.parent.frameReady(window);
+</script>
+</html>
